@@ -1,3 +1,3 @@
-set(COMPONENT_SRCS "user_main.c")
+set(COMPONENT_SRCS "app_main.c")
 
 register_component()

@@ -1,3 +1,2 @@
-set(COMPONENT_SRCS "user_main.c")
-
-register_component()
+idf_component_register(SRCS "app_main.c"
+                    INCLUDE_DIRS ".")

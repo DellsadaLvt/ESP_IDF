@@ -7,7 +7,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_system.h"
-#include "driver/userGpio.h"
+#include "userGpio.h"
 
 /* use for esp_log */
 static const char *TAG = "GPIO_FUNC";

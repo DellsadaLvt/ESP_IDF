@@ -1,2 +1,2 @@
-idf_component_register(SRCS "hello_world_main.c"
-                    INCLUDE_DIRS "")
+idf_component_register(SRCS "ControlLed.c" "user_uart.c" "user_gpio.c"
+                    INCLUDE_DIRS ".")

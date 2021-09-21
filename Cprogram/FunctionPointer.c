@@ -6,6 +6,8 @@ func_callback_t input_callback= NULL;
 
 void Func( void );
 void input_set_callback( void * cb );
+void call_func( void *arg);
+
 
 int main ( void ){
     /* practice one */
@@ -21,12 +23,21 @@ int main ( void ){
     input_set_callback(Func); // Func is the call back function, it can be at another file.
     input_callback();
 
+    /* ex_5 */
+    call_func(Func);
+
 
     return 0;
 }
 
+void call_func( void *arg){
+    void (*call_func_t)(void);
+    call_func_t= arg;
+    call_func_t();
+}
+
 void Func( void ){
-    printf("Hello World\n");
+    printf("Hello World!\n");
 }
 
 

@@ -2,16 +2,25 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
+#include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "esp_spi_flash.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
 
 
-/* create tag */
+#define RESET_TIMER_COUNT	    ( 1 << 0 )
+#define BLINK_LED_HIGH_SPEED	( 1 << 2 )
+#define BLINK_LED_LOW_SPEED	    ( 1 << 3 )
+#define TIME_OUT	            ( 1 << 4 )
+
+
+/* declare tag */
 static const char *TAG = "Control Led";
-/* create timer */
+/* declare a variable timer */
 TimerHandle_t Timer=NULL;
+/* Declare a variable to hold the created event group. */
+EventGroupHandle_t x_event_group= NULL;
 
 /* func prototype */
 void delay( uint32_t u32_time_ms);
@@ -19,33 +28,30 @@ void v_gpio_isr_handler( void *arg );
 void v_filter_button(void);
 void timer_callback_func(  TimerHandle_t xTimer );
 void config_gpio(void);
-
-/* global variables */
- volatile uint32_t g_u32_count= 10u, g_u32_temp= 10u;
- volatile uint8_t g_u8_time_count;
+void v_task_handler_timer_count( void *arg);
 
 
 void app_main(){
     /* create soft timer */
-    Timer= xTimerCreate("timer_1", pdMS_TO_TICKS(100u), pdTRUE, (void*)1, timer_callback_func);
+    do{
+        Timer= xTimerCreate("timer_1", pdMS_TO_TICKS(100u), pdTRUE, (void*)1, timer_callback_func);
+    }
+    while(Timer == NULL);
+    /* Attempt to create the event group. */
+    do{
+        x_event_group = xEventGroupCreate();
+    }
+    while(x_event_group== NULL);
+    /* create a task handler timer count */
+    xTaskCreate(v_task_handler_timer_count, "task_handler_button_count", configMINIMAL_STACK_SIZE, NULL, 10u, NULL);
     /* gpio config */
     config_gpio();
-    /* variables */
-    uint32_t count= 0u;
-    while(1u){
-        vTaskDelay(pdMS_TO_TICKS(20u));
-        if( count != g_u32_count ){
-            count = g_u32_count;
-            ESP_LOGI(TAG, "count with filter  %d, count not filter: %d, time press button: %d\n", g_u32_count, g_u32_temp, g_u8_time_count);
-        }
-    }
 }
 
 
 void v_gpio_isr_handler( void *arg ){
     /* handler gpio 13 */
     if(arg == (void*)GPIO_NUM_13){
-        g_u32_temp++;
         v_filter_button();
     }
 }
@@ -57,6 +63,7 @@ void v_filter_button(void){
     BaseType_t pxHigherPriorityTaskWoken= pdFAIL;
 
     /* create a time distance to debounce */
+    // update all value 
     fl_tick_current= xTaskGetTickCountFromISR();
     if( static_fl_tick_previous_falling == 0u )
         static_fl_tick_previous_falling= fl_tick_current;
@@ -66,17 +73,16 @@ void v_filter_button(void){
     if( (gpio_get_level(GPIO_NUM_13) == 0u) && (fl_tick_current - static_fl_tick_previous_falling > 3u) && (c_flag == 0u)){
         static_fl_tick_previous_falling = 0u;
         c_flag= 1u;
-        /* handler button */
-        g_u32_count++;   
-        g_u8_time_count= 0u;     
+        // set bit to reset timer count
+        xEventGroupSetBitsFromISR(x_event_group, RESET_TIMER_COUNT, &pxHigherPriorityTaskWoken);
+        // start timer to count the time press button
         xTimerStartFromISR(Timer, &pxHigherPriorityTaskWoken);
     }
     /* handler button for rising edge */
     if( (gpio_get_level(GPIO_NUM_13) == 1u) && (fl_tick_current - static_fl_tick_previous_rising > 3u) && (c_flag == 1u) ){
         static_fl_tick_previous_rising = 0u;
         c_flag= 0u;
-        /* handler button */
-        g_u32_count--;
+        // stop timer count time press button
         xTimerStopFromISR(Timer, &pxHigherPriorityTaskWoken);
     }
     if(pxHigherPriorityTaskWoken == pdTRUE){
@@ -95,21 +101,53 @@ void delay( uint32_t u32_time_ms){
 
 void timer_callback_func(  TimerHandle_t xTimer ){
     if( xTimer == Timer ){
-        static uint8_t u8_state_led= 0, temp;
-
-        if(g_u8_time_count == 0u)
+        static uint8_t u8_state_led= 0,g_u8_time_count= 0u, temp= 0u, timer_count_buffer= 0u;
+        EventBits_t uxBits;
+        /* Wait a maximum of 100ms for either bit 0 or bit 4 to be set within
+        the event group.  Clear the bits before exiting. */
+        uxBits = xEventGroupWaitBits(
+                    x_event_group,   /* The event group being tested. */
+                    RESET_TIMER_COUNT, /* The bits within the event group to wait for. */
+                    pdTRUE,        /* BIT_0 & BIT_4 should be cleared before returning. */
+                    pdFALSE,       /* Don't wait for both bits, either bit will do. */
+                    0u );/* no wait. */
+        /* reset all variables */
+        if( uxBits &  RESET_TIMER_COUNT){
+            timer_count_buffer= 0u;
+            g_u8_time_count= 0u;
             temp= 0u;
+        }
+        /* create timer count */
         g_u8_time_count++;
+        /* handler time count */
         if(g_u8_time_count < 10u){
             /* blink led 100ms */
             u8_state_led ^= 1;
             gpio_set_level(GPIO_NUM_2, u8_state_led);
+            /* set event group to change mode 1 */
+            if( ((temp>>1u) & 1u) == 0u ){
+                temp |= (1u<<1u);
+                xEventGroupSetBits(x_event_group, BLINK_LED_HIGH_SPEED);
+            }
         }
         else if(g_u8_time_count < 50u){
-            if( g_u8_time_count - temp >= 3u){
-                temp= g_u8_time_count;
+            if( g_u8_time_count - timer_count_buffer >= 3u){
+                timer_count_buffer= g_u8_time_count;
                 u8_state_led ^= 1;
                 gpio_set_level(GPIO_NUM_2, u8_state_led);
+                /* set event group to change mode 1 */
+                if( ((temp>>2u) & 1u) == 0u ){
+                    temp |= (1u<<2u);
+                    xEventGroupSetBits(x_event_group, BLINK_LED_LOW_SPEED);
+                }
+            }
+        } 
+        else{
+            gpio_set_level(GPIO_NUM_2, 0U);
+            /* set event group to change mode 1 */
+            if( ((temp>>3u) & 1u) == 0u ){
+                temp |= (1u<<3u);
+                xEventGroupSetBits(x_event_group, TIME_OUT);
             }
         } 
     }
@@ -140,6 +178,23 @@ void config_gpio(void){
     gpio_set_level(GPIO_NUM_2, 0u);
 }
 
+void v_task_handler_timer_count( void *arg ){
+    EventBits_t x_event_bit= 0u;
+    while(1){
+        /* wait for receive bit */
+        x_event_bit= xEventGroupWaitBits(x_event_group, BLINK_LED_HIGH_SPEED|BLINK_LED_LOW_SPEED|TIME_OUT, pdTRUE, pdFALSE, portMAX_DELAY );
+        if(x_event_bit & BLINK_LED_HIGH_SPEED ){
+            ESP_LOGI(TAG,"blink high speed\n");
+        }
+        else if(x_event_bit & BLINK_LED_LOW_SPEED ){
+            ESP_LOGI(TAG,"blink low speed\n");
+        }
+        else if(x_event_bit & TIME_OUT ){
+            ESP_LOGI(TAG,"time out\n");
+        }
+        vTaskDelay(pdMS_TO_TICKS(100u));
+    }
+}
 
 
 

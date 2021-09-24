@@ -13,6 +13,7 @@
 #define BLINK_LED_HIGH_SPEED	( 1 << 2 )
 #define BLINK_LED_LOW_SPEED	    ( 1 << 3 )
 #define TIME_OUT	            ( 1 << 4 )
+#define DETERMINED_MODE	        ( 1 << 5 )
 
 
 /* declare tag */
@@ -82,8 +83,10 @@ void v_filter_button(void){
     if( (gpio_get_level(GPIO_NUM_13) == 1u) && (fl_tick_current - static_fl_tick_previous_rising > 3u) && (c_flag == 1u) ){
         static_fl_tick_previous_rising = 0u;
         c_flag= 0u;
+        // Set bit to determine mode
+        xEventGroupSetBitsFromISR(x_event_group, DETERMINED_MODE, &pxHigherPriorityTaskWoken);
         // stop timer count time press button
-        xTimerStopFromISR(Timer, &pxHigherPriorityTaskWoken);
+        //xTimerStopFromISR(Timer, &pxHigherPriorityTaskWoken);
     }
     if(pxHigherPriorityTaskWoken == pdTRUE){
         taskYIELD();
@@ -101,54 +104,64 @@ void delay( uint32_t u32_time_ms){
 
 void timer_callback_func(  TimerHandle_t xTimer ){
     if( xTimer == Timer ){
-        static uint8_t u8_state_led= 0,g_u8_time_count= 0u, temp= 0u, timer_count_buffer= 0u;
+        static uint8_t u8_state_led= 0,_u8_time_count= 0u, timer_count_buffer= 0u;
         EventBits_t uxBits;
         /* Wait a maximum of 100ms for either bit 0 or bit 4 to be set within
         the event group.  Clear the bits before exiting. */
         uxBits = xEventGroupWaitBits(
                     x_event_group,   /* The event group being tested. */
-                    RESET_TIMER_COUNT, /* The bits within the event group to wait for. */
+                    RESET_TIMER_COUNT | DETERMINED_MODE, /* The bits within the event group to wait for. */
                     pdTRUE,        /* BIT_0 & BIT_4 should be cleared before returning. */
                     pdFALSE,       /* Don't wait for both bits, either bit will do. */
                     0u );/* no wait. */
         /* reset all variables */
         if( uxBits &  RESET_TIMER_COUNT){
             timer_count_buffer= 0u;
-            g_u8_time_count= 0u;
-            temp= 0u;
+            _u8_time_count= 0u;
+            //temp= 0u;
+        }
+        else if( uxBits & DETERMINED_MODE){
+            if( _u8_time_count < 10u)
+                xEventGroupSetBits(x_event_group, BLINK_LED_HIGH_SPEED);
+            else if( _u8_time_count < 50)
+                xEventGroupSetBits(x_event_group, BLINK_LED_LOW_SPEED);
+            else
+                xEventGroupSetBits(x_event_group, TIME_OUT);
+            // stop timer count time press button
+            xTimerStop(Timer, 0u);
         }
         /* create timer count */
-        g_u8_time_count++;
+        _u8_time_count++;
         /* handler time count */
-        if(g_u8_time_count < 10u){
+        if(_u8_time_count < 10u){
             /* blink led 100ms */
             u8_state_led ^= 1;
             gpio_set_level(GPIO_NUM_2, u8_state_led);
             /* set event group to change mode 1 */
-            if( ((temp>>1u) & 1u) == 0u ){
-                temp |= (1u<<1u);
-                xEventGroupSetBits(x_event_group, BLINK_LED_HIGH_SPEED);
-            }
+            // if( ((temp>>1u) & 1u) == 0u ){
+            //     temp |= (1u<<1u);
+            //     xEventGroupSetBits(x_event_group, BLINK_LED_HIGH_SPEED);
+            // }
         }
-        else if(g_u8_time_count < 50u){
-            if( g_u8_time_count - timer_count_buffer >= 3u){
-                timer_count_buffer= g_u8_time_count;
+        else if(_u8_time_count < 50u){
+            if( _u8_time_count - timer_count_buffer >= 3u){
+                timer_count_buffer= _u8_time_count;
                 u8_state_led ^= 1;
                 gpio_set_level(GPIO_NUM_2, u8_state_led);
                 /* set event group to change mode 1 */
-                if( ((temp>>2u) & 1u) == 0u ){
-                    temp |= (1u<<2u);
-                    xEventGroupSetBits(x_event_group, BLINK_LED_LOW_SPEED);
-                }
+                // if( ((temp>>2u) & 1u) == 0u ){
+                //     temp |= (1u<<2u);
+                //     xEventGroupSetBits(x_event_group, BLINK_LED_LOW_SPEED);
+                // }
             }
         } 
         else{
             gpio_set_level(GPIO_NUM_2, 0U);
             /* set event group to change mode 1 */
-            if( ((temp>>3u) & 1u) == 0u ){
-                temp |= (1u<<3u);
-                xEventGroupSetBits(x_event_group, TIME_OUT);
-            }
+            // if( ((temp>>3u) & 1u) == 0u ){
+            //     temp |= (1u<<3u);
+            //     xEventGroupSetBits(x_event_group, TIME_OUT);
+            // }
         } 
     }
 }

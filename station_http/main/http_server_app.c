@@ -16,14 +16,20 @@
 static const char *TAG="APP";
 static httpd_handle_t server = NULL;
 
+/* declare to insert image in flash */
+extern const uint8_t index_html_start[] asm("_binary_image_png_start");
+extern const uint8_t index_html_end[] asm("_binary_image_png_end");
+
 /* An HTTP GET handler */
 esp_err_t hello_get_handler(httpd_req_t *req)
 {
     /* Send response with custom headers and body set as the
      * string passed in user context*/
-    const char* resp_str = (const char*)"hello world!";
-    httpd_resp_send(req, resp_str, strlen(resp_str));
-
+    // const char* resp_str = (const char*)"hello world!";
+    // httpd_resp_send(req, resp_str, strlen(resp_str));
+    /* send image */
+    httpd_resp_set_type(req, "image/png");
+    httpd_resp_send(req, (const char *)index_html_start, index_html_end - index_html_start);
     return ESP_OK;
 }
 

@@ -117,7 +117,11 @@ void wifi_init_sta(void){
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = EXAMPLE_ESP_WIFI_SSID,
-            .password = EXAMPLE_ESP_WIFI_PASS
+            .password = EXAMPLE_ESP_WIFI_PASS,
+            .pmf_cfg = {
+                .capable= true,
+                .required= false
+            },
         },
     };
 

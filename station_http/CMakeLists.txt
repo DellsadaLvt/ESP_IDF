@@ -4,3 +4,8 @@ cmake_minimum_required(VERSION 3.5)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(wifi_station)
+
+#target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "image/image.png" TEXT)
+target_add_binary_data(${CMAKE_PROJECT_NAME}.elf "html/index.html" TEXT)
+
+

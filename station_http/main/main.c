@@ -57,9 +57,7 @@ float phase[3] = {
     0.0, 0.0, 0.0
 };
 
-
 static const char *TAG = "main wifi station";
-
 
 
 /* Func prototypes */
@@ -199,10 +197,8 @@ void pwm_callback( char* data, uint16_t len){
             pwm_stop(0);
             pwm_set_duties(duties);
             pwm_start();
-            /* update duty current */
-            duty_set = atoi(data)*PWM_PERIOD/100u;
+            /* update current duty */
             pwm_get_duty(0, &duty_current);
-            printf("The duty: %d, %d\n", duty_current, duty_set);
             /* delay */
             vTaskDelay(pdMS_TO_TICKS(100u));
         }
@@ -214,10 +210,8 @@ void pwm_callback( char* data, uint16_t len){
             pwm_stop(0);
             pwm_set_duties(duties);
             pwm_start();
-            /* update duty current */
-            duty_set = atoi(data)*PWM_PERIOD/100u;
+            /* update current duty */
             pwm_get_duty(0, &duty_current);
-            printf("The duty: %d, %d\n", duty_current, duty_set);
             /* delay */
             vTaskDelay(pdMS_TO_TICKS(100u));
         }

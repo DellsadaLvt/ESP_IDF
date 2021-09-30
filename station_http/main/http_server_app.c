@@ -11,9 +11,10 @@ extern const uint8_t index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t index_html_end[] asm("_binary_index_html_end");
 
 /* Declare for callback func */
-static http_post_callback_t http_post_slider_callback = NULL;
-static http_post_callback_t http_post_switch_callback = NULL;
-static http_get_callback_t  http_get_dht11_callback = NULL;
+static http_post_callback_t http_post_slider_callback   = NULL;
+static http_post_callback_t http_post_switch_callback   = NULL;
+static http_post_callback_t http_post_wifi_inf_callback = NULL;
+static http_get_callback_t  http_get_dht11_callback     = NULL;
 httpd_req_t *REQ;
 
 /* An HTTP GET handler */
@@ -128,12 +129,29 @@ httpd_uri_t post_data_button = {
 }
 
 httpd_uri_t post_data_slider = {
-    .uri       = "/lider_led",
+    .uri       = "/slider_led",
     .method    = HTTP_POST,
     .handler   = slider_post_handler,
     .user_ctx  = NULL
 };
 
+/* An HTTP POST wifi inf handler */
+ esp_err_t wifi_inf_post_handler(httpd_req_t *req){
+    char buf[100];
+    memset(buf, 0, 100);
+    httpd_req_recv(req, buf, req->content_len);
+    http_post_wifi_inf_callback(buf, req->content_len);
+    // End response
+    httpd_resp_send_chunk(req, NULL, 0);
+    return ESP_OK;
+}
+
+httpd_uri_t post_data_wifi_inf = {
+    .uri       = "/wifi_inf",
+    .method    = HTTP_POST,
+    .handler   = wifi_inf_post_handler,
+    .user_ctx  = NULL
+};
 
 void start_webserver(void)
 {
@@ -149,6 +167,7 @@ void start_webserver(void)
         httpd_register_uri_handler(server, &post_data);
         httpd_register_uri_handler(server, &post_data_button);
         httpd_register_uri_handler(server, &post_data_slider);
+        httpd_register_uri_handler(server, &post_data_wifi_inf);
     }
     else{
         ESP_LOGI(TAG, "Error starting server!");
@@ -172,4 +191,10 @@ void http_set_calback_dht11( void *cb ){
 void http_set_callback_slider( void *cb ){
     http_post_slider_callback = cb;
 }
+
+void http_set_callback_wifi_inf( void *cb ){
+    http_post_wifi_inf_callback = cb;
+}
+
+
 

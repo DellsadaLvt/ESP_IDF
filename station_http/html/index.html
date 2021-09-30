@@ -161,6 +161,22 @@
     </div>
 
 
+    <div class="picker-container">
+        <div class="row">
+            <h3>Led Color</h3>
+        </div>
+        <input class="jscolor {onFineChange:'update(this)}" id="rgb">
+        <button onclick="changeColor()">Change</button>
+    </div>
+
+    <h2>Wifi Inf</h2>
+    <label>SSID:</label>
+    <input type="text" id="ssid"><br><br>
+    <label>Password:</label>
+    <input type="text" id="pass"><br><br>
+    <button onclick="verify_register_wifi_inf()">Send</button>
+
+
     <script>
         var xhttp1= new XMLHttpRequest();
         var xhttp2= new XMLHttpRequest();
@@ -190,6 +206,7 @@
             }
         }
 
+        /* using for slider */
         var slider = document.getElementById("rangeinput");
         var output = document.getElementById("rangevalue");
         output.innerHTML = slider.value;
@@ -199,8 +216,30 @@
         }
 
         slider.onchange = function(){
-            xhttp2.open("POST", "/lider_led", true);
+            xhttp2.open("POST", "/slider_led", true);
             xhttp2.send(this.value);
+        }
+
+        /* change color rgb */
+        function changeColor(){
+            var color = document.getElementById("rgb").value;
+            xhttp.open('GET', '/rgb?color='+color);
+            xhttp.send();
+        }
+
+        /* wifi inf */
+        function verify_register_wifi_inf(){
+            var ssid = document.getElementById("ssid").value;
+            var pass = document.getElementById("pass").value;
+            xhttp2.open("POST", "/wifi_inf", true);
+            xhttp2.send(ssid+"!@@!$^"+pass);
+        }
+    </script>
+        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.min.js">
+        /* using for rgb */
+        function update(picker){
+            document.getElementById("rgb").innerHTML = Math.round(picker.rgb[0]) + ', ' + Math.round(picker.rgb[1]) + ', ' + Math.round(picker.rgb[2]);
         }
     </script>
 </html>

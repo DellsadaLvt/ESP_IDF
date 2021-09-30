@@ -1,2 +1,2 @@
-idf_component_register(SRCS "main.c" "http_server_app.c"
+idf_component_register(SRCS "main.c" "http_server_app.c" "gpio.c" "connect.h"
                     INCLUDE_DIRS ".")

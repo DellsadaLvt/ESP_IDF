@@ -167,6 +167,8 @@
         </div>
         <input class="jscolor {onFineChange:'update(this)}" id="rgb">
         <button onclick="changeColor()">Change</button>
+        <p>value</p>
+        <p id="demo_rgb"></p>
     </div>
 
     <h2>Wifi Inf</h2>
@@ -220,20 +222,24 @@
             xhttp2.send(this.value);
         }
 
-        /* change color rgb */
-        function changeColor(){
-            var color = document.getElementById("rgb").value;
-            xhttp.open('GET', '/rgb?color='+color);
-            xhttp.send();
-        }
-
         /* wifi inf */
         function verify_register_wifi_inf(){
             var ssid = document.getElementById("ssid").value;
             var pass = document.getElementById("pass").value;
             xhttp2.open("POST", "/wifi_inf", true);
-            xhttp2.send(ssid+"!@@!$^"+pass);
+            xhttp2.send(ssid+"!@@!$^"+pass+"!@@!$^");
         }
+
+        function changeColor() {
+            var color = document.getElementById("rgb").value;
+            // xhttp2.open("POST", "/rgb", true);
+            // xhttp2.send(color);
+            //document.getElementById("demo_rgb").innerHTML = color;
+            xhttp2.open('GET', '/rgb?color='+color);
+            xhttp2.send();
+        }
+
+       
     </script>
         
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.min.js">
@@ -242,6 +248,8 @@
             document.getElementById("rgb").innerHTML = Math.round(picker.rgb[0]) + ', ' + Math.round(picker.rgb[1]) + ', ' + Math.round(picker.rgb[2]);
         }
     </script>
+
+
 </html>
 
 

@@ -1,0 +1,11 @@
+// #ifndef __WS_2812_H
+// #define __WS_2812_H
+
+
+// void ws2812_init(int tx_pin, int number_led);
+// void ws2812_set_color( int index, int r, int g, int b);
+// void ws2812_update_color( void );
+
+// #endif
+
+

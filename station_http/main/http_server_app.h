@@ -16,12 +16,16 @@
 #include <esp_http_server.h>
 
 
-typedef void (*http_post_callback_t) (char *dta, uint16_t len);
+typedef void (*http_post_callback_t) (char *data, uint16_t len);
 typedef void (*http_get_callback_t) (void);
+typedef void (*http_get_data_callback_t) (char *data, uint16_t len);
+
+
 void http_set_callback_switch(void *cb);
 void http_set_calback_dht11( void *cb );
 void http_set_callback_slider( void *cb );
 void http_set_callback_wifi_inf( void *cb );
+void http_set_rgb_callback( void *cb);
 void dht11_response( char *data, uint16_t len);
 
 void start_webserver(void);

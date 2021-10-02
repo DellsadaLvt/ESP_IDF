@@ -1,6 +1,6 @@
 #include "http_server_app.h"
 
-static const char *TAG = "HTTP server";
+static const char *TAG = "HTTP app server.c";
 static httpd_handle_t server = NULL;
 
 /* declare to insert image in flash */
@@ -11,10 +11,11 @@ extern const uint8_t index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t index_html_end[] asm("_binary_index_html_end");
 
 /* Declare for callback func */
-static http_post_callback_t http_post_slider_callback   = NULL;
-static http_post_callback_t http_post_switch_callback   = NULL;
-static http_post_callback_t http_post_wifi_inf_callback = NULL;
-static http_get_callback_t  http_get_dht11_callback     = NULL;
+static http_post_callback_t     http_post_slider_callback   = NULL;
+static http_post_callback_t     http_post_switch_callback   = NULL;
+static http_post_callback_t     http_post_wifi_inf_callback = NULL;
+static http_get_callback_t      http_get_dht11_callback     = NULL;
+static http_get_data_callback_t http_get_rgb_callback       = NULL;
 httpd_req_t *REQ;
 
 /* An HTTP GET handler */
@@ -153,6 +154,36 @@ httpd_uri_t post_data_wifi_inf = {
     .user_ctx  = NULL
 };
 
+/* Get RGB value */
+esp_err_t rgb_get_handler(httpd_req_t *req){
+    int buf_len = httpd_req_get_url_query_len(req) + 1;
+    if (buf_len > 1) {
+        char * buf = malloc(buf_len);
+        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
+            ESP_LOGI(TAG, "Found URL query => %s", buf);
+            char value[32];
+            /* Get value of expected key from query string */
+            if (httpd_query_key_value(buf, "color", value, sizeof(value)) == ESP_OK) {
+                http_get_rgb_callback(value, 6);
+            }
+        }
+        free(buf);
+    }
+
+    return ESP_OK;
+}
+
+httpd_uri_t get_data_rgb = {
+    /* /rgb?color */
+    .uri       = "/rgb",
+    .method    = HTTP_GET,
+    .handler   = rgb_get_handler,
+    .user_ctx  = NULL
+};
+
+
+/*======================== user function ======================*/
+
 void start_webserver(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -164,6 +195,8 @@ void start_webserver(void)
         ESP_LOGI(TAG, "Registering URI handlers");
         httpd_register_uri_handler(server, &get_data_dht11);
         httpd_register_uri_handler(server, &get_data_dht11_interval);
+        httpd_register_uri_handler(server, &get_data_rgb);
+
         httpd_register_uri_handler(server, &post_data);
         httpd_register_uri_handler(server, &post_data_button);
         httpd_register_uri_handler(server, &post_data_slider);
@@ -174,11 +207,11 @@ void start_webserver(void)
     }
 }
 
-void stop_webserver(void)
-{
+void stop_webserver(void){
     // Stop the httpd server
     httpd_stop(server);
 }
+
 
 void http_set_callback_switch(void *cb){
     http_post_switch_callback = cb;
@@ -196,5 +229,8 @@ void http_set_callback_wifi_inf( void *cb ){
     http_post_wifi_inf_callback = cb;
 }
 
+void http_set_rgb_callback( void *cb){
+    http_get_rgb_callback = cb;
+}
 
 

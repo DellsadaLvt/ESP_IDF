@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 
 // this is in practice two
 typedef void (*func_callback_t)(void);
@@ -7,6 +8,7 @@ func_callback_t input_callback= NULL;
 void Func( void );
 void input_set_callback( void * cb );
 void call_func( void *arg);
+void str_input( uint32_t *data );
 
 
 int main ( void ){
@@ -40,11 +42,14 @@ void Func( void ){
     printf("Hello World!\n");
 }
 
-
 /* update from practice two */
 void input_set_callback( void * cb ){
       input_callback= cb;
 }
+
+
+
+
 
 
 

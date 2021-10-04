@@ -11,14 +11,16 @@ extern const uint8_t index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t index_html_end[] asm("_binary_index_html_end");
 
 /* Declare for callback func */
-static http_post_callback_t     http_post_slider_callback   = NULL;
-static http_post_callback_t     http_post_switch_callback   = NULL;
-static http_post_callback_t     http_post_wifi_inf_callback = NULL;
-static http_get_callback_t      http_get_dht11_callback     = NULL;
-static http_get_data_callback_t http_get_rgb_callback       = NULL;
+static char flag_wifi_inf_enable = 1u; 
+static http_post_callback_t     http_post_slider_callback       = NULL;
+static http_post_callback_t     http_post_switch_callback       = NULL;
+static http_post_callback_t     http_post_wifi_inf_callback     = NULL;
+static http_get_callback_t      http_get_data_callback          = NULL;
+static http_get_data_callback_t http_get_rgb_callback           = NULL;
+static http_post_cmd_callback_t     http_post_wifi_reset_callback   = NULL;
 httpd_req_t *REQ;
 
-/* An HTTP GET handler */
+/* Get Pape html */
 esp_err_t hello_get_handler(httpd_req_t *req)
 {
     /* Send response with custom headers and body set as the
@@ -36,9 +38,8 @@ esp_err_t hello_get_handler(httpd_req_t *req)
     
     return ESP_OK;
 }
-
 httpd_uri_t get_data_dht11 = {
-    .uri       = "/dht11",
+    .uri       = "/",
     .method    = HTTP_GET,
     .handler   = hello_get_handler,
     /* Let's pass response string in user
@@ -46,12 +47,8 @@ httpd_uri_t get_data_dht11 = {
     .user_ctx  = NULL
 };
 
-void dht11_response( char *data, uint16_t len){
-    httpd_resp_send(REQ, data, len);
-}
-
-/* An HTTP GET data dht11 handler */
-esp_err_t get_data_dht11_handler(httpd_req_t *req)
+/* GET data dht11  */
+esp_err_t get_data_handler(httpd_req_t *req)
 {   
     //static uint8_t u8_test_value= 0u;
     //char resp_str[100u];
@@ -62,14 +59,13 @@ esp_err_t get_data_dht11_handler(httpd_req_t *req)
     
     REQ = req;
     /* using callback func */
-    http_get_dht11_callback();
+    http_get_data_callback();
     return ESP_OK;
 }
-
 httpd_uri_t get_data_dht11_interval = {
-    .uri       = "/getdatadht11",
+    .uri       = "/getdata",
     .method    = HTTP_GET,
-    .handler   = get_data_dht11_handler,
+    .handler   = get_data_handler,
     .user_ctx  = NULL
 };
 
@@ -80,7 +76,7 @@ httpd_uri_t get_data_dht11_interval = {
 //     }
 // }
 
-/* An HTTP POST handler */
+/* Example HTTP POST */
  esp_err_t echo_post_handler(httpd_req_t *req){
     char buf[100];
     memset(buf, 0, 100);
@@ -90,7 +86,6 @@ httpd_uri_t get_data_dht11_interval = {
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
-
 httpd_uri_t post_data = {
     .uri       = "/post_data",
     .method    = HTTP_POST,
@@ -98,8 +93,7 @@ httpd_uri_t post_data = {
     .user_ctx  = NULL
 };
 
-
-/* An HTTP POST button handler */
+/* HTTP POST button */
  esp_err_t button_post_handler(httpd_req_t *req){
     char buf[100];
     memset(buf, 0, 100);
@@ -110,7 +104,6 @@ httpd_uri_t post_data = {
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
-
 httpd_uri_t post_data_button = {
     .uri       = "/switch1",
     .method    = HTTP_POST,
@@ -118,7 +111,7 @@ httpd_uri_t post_data_button = {
     .user_ctx  = NULL
 };
 
-/* An HTTP POST slider handler */
+/* HTTP POST slider  */
  esp_err_t slider_post_handler(httpd_req_t *req){
     char buf[100];
     memset(buf, 0, 100);
@@ -128,7 +121,6 @@ httpd_uri_t post_data_button = {
     httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
-
 httpd_uri_t post_data_slider = {
     .uri       = "/slider_led",
     .method    = HTTP_POST,
@@ -136,17 +128,19 @@ httpd_uri_t post_data_slider = {
     .user_ctx  = NULL
 };
 
-/* An HTTP POST wifi inf handler */
+/* HTTP POST wifi inf */
  esp_err_t wifi_inf_post_handler(httpd_req_t *req){
-    char buf[100];
-    memset(buf, 0, 100);
-    httpd_req_recv(req, buf, req->content_len);
-    http_post_wifi_inf_callback(buf, req->content_len);
-    // End response
-    httpd_resp_send_chunk(req, NULL, 0);
+    if( flag_wifi_inf_enable == 1){
+        char buf[100];
+        memset(buf, 0, 100);
+        httpd_req_recv(req, buf, req->content_len);
+        http_post_wifi_inf_callback(buf, req->content_len);
+        ESP_LOGI(TAG, "the data received: %s\n", buf);
+        // End response
+        httpd_resp_send_chunk(req, NULL, 0);
+    }
     return ESP_OK;
 }
-
 httpd_uri_t post_data_wifi_inf = {
     .uri       = "/wifi_inf",
     .method    = HTTP_POST,
@@ -172,7 +166,6 @@ esp_err_t rgb_get_handler(httpd_req_t *req){
 
     return ESP_OK;
 }
-
 httpd_uri_t get_data_rgb = {
     /* /rgb?color */
     .uri       = "/rgb",
@@ -181,9 +174,25 @@ httpd_uri_t get_data_rgb = {
     .user_ctx  = NULL
 };
 
+/* Reset wifi */
+ esp_err_t wifi_reset_post_handler(httpd_req_t *req){
+    char buf[2];
+    memset(buf, 0, 2);
+    httpd_req_recv(req, buf, req->content_len);
+    http_post_wifi_reset_callback();
+    // End response
+    httpd_resp_send_chunk(req, NULL, 0);
+    return ESP_OK;
+}
+httpd_uri_t post_data_wifi_reset = {
+    .uri       = "/reset_wifi",
+    .method    = HTTP_POST,
+    .handler   = wifi_reset_post_handler,
+    .user_ctx  = NULL
+};
 
 /*======================== user function ======================*/
-
+/* Init function */
 void start_webserver(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -201,6 +210,7 @@ void start_webserver(void)
         httpd_register_uri_handler(server, &post_data_button);
         httpd_register_uri_handler(server, &post_data_slider);
         httpd_register_uri_handler(server, &post_data_wifi_inf);
+        httpd_register_uri_handler(server, &post_data_wifi_reset);
     }
     else{
         ESP_LOGI(TAG, "Error starting server!");
@@ -212,13 +222,24 @@ void stop_webserver(void){
     httpd_stop(server);
 }
 
+void dht11_response( char *data, uint16_t len){
+    httpd_resp_send(REQ, data, len);
+}
 
+void http_set_flag_enable( void ){
+    flag_wifi_inf_enable = 1u;
+}
+
+void http_set_flag_disable( void ){
+    flag_wifi_inf_enable = 0u;
+}
+/* Callback functions */
 void http_set_callback_switch(void *cb){
     http_post_switch_callback = cb;
 }
 
 void http_set_calback_dht11( void *cb ){
-    http_get_dht11_callback = cb;
+    http_get_data_callback = cb;
 }
 
 void http_set_callback_slider( void *cb ){
@@ -232,5 +253,10 @@ void http_set_callback_wifi_inf( void *cb ){
 void http_set_rgb_callback( void *cb){
     http_get_rgb_callback = cb;
 }
+
+void http_set_wifi_reset_callback( void *cb ){
+    http_post_wifi_reset_callback = cb;
+}
+
 
 

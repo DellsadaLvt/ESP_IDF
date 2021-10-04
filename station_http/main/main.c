@@ -2,6 +2,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/timers.h"
 
 #include "esp_system.h"
 #include "esp_log.h"
@@ -31,34 +32,45 @@ typedef struct rgb {
     state_func_t state;
 } rgb_color_t;
 
-
 /* TAG message */
 static const char *TAG = "------> main.c: ";
 
+/* Global variables */
+wifi_notify_state_t g_wifi_state = wifi_non_connected;
+
+/* Soft Timer */
+TimerHandle_t xTimer_1 = NULL;
+
 /* Prototypes function */
 static void switch_data_callback( char *data, uint16_t len);
-static void dht11_data_callback( void );
+static void get_data_callback( void );
 static void pwm_callback( char* data, uint16_t len);
 static void rgb_value_handler(char *data, uint16_t len);
 static void wifi_inf( char* data, uint16_t len );
 static rgb_color_t x_seperate_color( char *rgb_color );
 static uint16_t u16_rgb_to_ledc_value( uint8_t inp );
-
+static void wifi_state_callback( wifi_notify_state_t wifi_state);
+void timer_callback_handler( TimerHandle_t xTimer );
+static void wifi_reset_callback(void);
 
 void app_main(){
     /* Init flash */
     ESP_ERROR_CHECK(nvs_flash_init());
     config_gpio_output();
     v_ledc_init();
-    //config_pwm();
+    /* Create Timer */
+    xTimer_1 = xTimerCreate("Timer_1", pdMS_TO_TICKS(100u), pdTRUE, 0u, timer_callback_handler);
+    xTimerStart(xTimer_1, 0u);
     /* set callback func */
-    http_set_calback_dht11(dht11_data_callback);
+    http_set_calback_dht11(get_data_callback);
     http_set_callback_switch(switch_data_callback);
     http_set_callback_slider(pwm_callback);
     http_set_callback_wifi_inf(wifi_inf);
     http_set_rgb_callback(rgb_value_handler);
+    set_wifi_state_callback(wifi_state_callback);
+    http_set_wifi_reset_callback(wifi_reset_callback);
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
-    wifi_init_sta();
+    wifi_init_softap();
     start_webserver();
 }
 
@@ -71,9 +83,10 @@ static void switch_data_callback( char *data, uint16_t len){
     }
 }
 
-static void dht11_data_callback( void ){
+static void get_data_callback( void ){
     char resp[100u];
     static uint8_t u8_test_value = 0u;
+
     u8_test_value += 20;
     sprintf(resp, "{\"temperature\": \"%d\", \"humidity\": \"%d\"}", u8_test_value, u8_test_value);
     dht11_response( resp, strlen(resp) );
@@ -126,7 +139,8 @@ static void wifi_inf( char* data, uint16_t len ){
     if(token)
         sprintf(pass, "%s", token);
 
-    reconnect_wifi(ssid, pass);
+    /* switch to station mode */
+    wifi_switch_station(ssid, pass);
 }
 
 static void rgb_value_handler(char *data, uint16_t len){
@@ -186,9 +200,33 @@ static uint16_t u16_rgb_to_ledc_value( uint8_t inp ){
     return ((uint16_t)(inp*8000u/255u));
 }
 
+static void wifi_state_callback( wifi_notify_state_t wifi_state){
+    g_wifi_state = wifi_state;
+}
 
+void timer_callback_handler( TimerHandle_t xTimer ){
+    if( xTimer == xTimer_1 ){
+        static uint8_t _u8_state_led= 0u;
+        
+        if( g_wifi_state == wifi_non_connected || g_wifi_state == wifi_disconnected){
+            _u8_state_led ^= 1;
+            gpio_set_level(LED_STATUS, _u8_state_led);
+        }
+        else if(g_wifi_state == wifi_connected){
+            gpio_set_level(LED_STATUS, 1u);
+            http_set_flag_disable();
+            xTimerDelete(xTimer_1, 1u);
+        }
+    }
+}
 
-
+static void wifi_reset_callback(void){
+    g_wifi_state = wifi_non_connected;
+    http_set_flag_enable();
+    xTimer_1 = xTimerCreate("Timer_1", pdMS_TO_TICKS(100u), pdTRUE, 0u, timer_callback_handler);
+    xTimerStart(xTimer_1, 0u);
+    wifi_switch_ap();
+}
 
 
 

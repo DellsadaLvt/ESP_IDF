@@ -171,17 +171,20 @@
         <p id="demo_rgb"></p>
     </div>
 
-    <h2>Wifi Inf</h2>
+    <h2>Wifi Register</h2>
     <label>SSID:</label>
     <input type="text" id="ssid"><br><br>
     <label>Password:</label>
     <input type="text" id="pass"><br><br>
     <button onclick="verify_register_wifi_inf()">Send</button>
+    <button onclick="reset_wifi()">Reset Wifi</button>
+    <br><br><br>
 
 
     <script>
         var xhttp1= new XMLHttpRequest();
         var xhttp2= new XMLHttpRequest();
+        var xhttp3= new XMLHttpRequest();
 
         xhttp1.onreadystatechange= function(){
             const obj = JSON.parse(this.responseText);
@@ -192,9 +195,10 @@
         }
 
         setInterval(function ( ){
-            xhttp1.open("GET", "/getdatadht11", true);
+            xhttp1.open("GET", "/getdata", true);
             xhttp1.send();
         }, 1000);
+
 
         // using for switch button
         function myFunction1(){
@@ -230,6 +234,11 @@
             xhttp2.send(ssid+"!@@!$^"+pass+"!@@!$^");
         }
 
+        function reset_wifi(){
+            xhttp2.open("POST", "/reset_wifi", true);
+            xhttp2.send();
+        }
+
         function changeColor() {
             var color = document.getElementById("rgb").value;
             // xhttp2.open("POST", "/rgb", true);
@@ -238,7 +247,6 @@
             xhttp2.open('GET', '/rgb?color='+color);
             xhttp2.send();
         }
-
        
     </script>
         

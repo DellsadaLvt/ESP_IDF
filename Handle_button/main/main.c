@@ -85,6 +85,7 @@ void v_filter_button(void){
         xEventGroupSetBitsFromISR(x_event_group, RESET_TIMER_COUNT, &pxHigherPriorityTaskWoken);
         // start timer to count the time press button
         xTimerStartFromISR(Timer, &pxHigherPriorityTaskWoken);
+    
     }
 
     /*-------------------------------------------------------------------------*/

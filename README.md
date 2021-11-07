@@ -1,5 +1,5 @@
 # ESP_IDF
-This is the processing that I learn about ESP IDF. Main 0: I used esp8266, MAIN 1: I use esp32. I see that both API are almost similar.
+This is the processing that I learn about ESP IDF.
 ### Path:
 ```
 export PATH="$PATH:$HOME/esp/xtensa-lx106-elf/bin"

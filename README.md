@@ -9,4 +9,10 @@ export IDF_PATH="$HOME/esp/ESP8266_RTOS_SDK"
 ```
 C:\msys32\home\LAPTOP\esp\ESP8266_RTOS_SDK\components\esp8266\source\startup.c
 ```
-
+### Change branch's name:
+```
+git branch -m old_name new_name
+git fetch origin
+git branch -u origin/new_name new_name
+git remote set-head origin -a
+```

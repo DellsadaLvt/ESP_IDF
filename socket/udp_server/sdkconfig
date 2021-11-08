@@ -121,6 +121,14 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# Example Configuration
+#
+CONFIG_EXAMPLE_IPV4=y
+# CONFIG_EXAMPLE_IPV6 is not set
+CONFIG_EXAMPLE_PORT=3333
+# end of Example Configuration
+
+#
 # Compiler options
 #
 CONFIG_COMPILER_OPTIMIZATION_DEFAULT=y
@@ -205,7 +213,7 @@ CONFIG_SPI_SLAVE_ISR_IN_IRAM=y
 #
 # UART configuration
 #
-CONFIG_UART_ISR_IN_IRAM=y
+# CONFIG_UART_ISR_IN_IRAM is not set
 # end of UART configuration
 
 #

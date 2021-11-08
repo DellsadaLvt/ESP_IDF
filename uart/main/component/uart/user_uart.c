@@ -12,7 +12,7 @@ static size_t buffered_size;
 
 void uart_init( uart_config_t uart_config ){
     //Install UART driver, and get the queue.
-    uart_driver_install(EX_UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, QUEUE_EVEN_SIZE, &uart0_queue, 0);
+    uart_driver_install(EX_UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, QUEUE_EVEN_SIZE, &uart0_queue, ESP_INTR_FLAG_IRAM);
     uart_param_config(EX_UART_NUM, &uart_config);
     
     //Set UART pins (using UART0 default pins ie no changes.)

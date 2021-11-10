@@ -2,18 +2,20 @@
 #include <string.h>
 #include <stdint.h>
 
+typedef enum{
+    oke, 
+    fail
+} status_t;
 
 void demo0 (void);
 void demo1(void);
 void demo2( void );
 void str_cpy(char *dest, char *source, uint16_t n);
+status_t parse_str(void);
 
 
 int main(void){
-    char str[]= "hello this is the temp";
-    char buff[13u];
-    str_cpy(buff, str, 13u);
-    printf("The result: %s\n", buff);
+    parse_str();
     return 0;
 }
 
@@ -42,7 +44,6 @@ void demo1(void)
     //printf("The result: %d\n", strcmp)
 }
 
-
 void demo2( void )
 {
     char str[10u]= "helloABC", sstr[20u] = "helloAbc";
@@ -56,5 +57,25 @@ void str_cpy(char *dest, char *source, uint16_t n)
     }
 }
 
+status_t parse_str(void){
+    char buff[10u];
+    int age;
+    //char *str = "{\"name\":\"hoa\", \"age\":\"23\", \"str\":}"buff"\r\n";
+    char str[20];
+    sprintf(str, "{\"%s\":\"%d\"}", "hoa", 23);
+    printf("%s\n", str);
+    sscanf(str,"{\"%s\":\"%d\"}", buff, &age);
+    printf("the result-> name-> %s, age-> %d\n", buff, age);
+    return oke;
+}
 
 
+/*
+int day, year;
+   char weekday[20], month[20], dtm[100];
+
+   strcpy( dtm, "Tuesday July 12 2016" );
+   sscanf( dtm, "%s %s %d  %d", weekday, month, &day, &year );
+
+   printf("%s %d, %d = %s\n", month, day, year, weekday );
+*/

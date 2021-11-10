@@ -7,7 +7,7 @@ typedef struct pro {
     uint8_t age;
 } profile;
 
-int main( void ){
+int test_1( void ){
     profile stua = {
         .name = "nhucy",
         .age = 18u
@@ -35,6 +35,45 @@ int main( void ){
     return 0u;
 }
 
+
+typedef struct cJSON
+{
+    struct cJSON *next;
+    struct cJSON *prev;
+    struct cJSON *child;
+    int type;
+    char *valuestring;
+    int valueint;
+    double valuedouble;
+    char *string;
+} cJSON;
+
+
+void test_2( void ){
+    printf("hadler\n");
+    cJSON item = {
+        .string= "hello",
+    };
+    char *temp;
+
+    // char buff[50u]= "{\"one\":\"1\",\"two\":\"2\", \"three\":\"3\"}";
+    // printf("The buff: %s\n", buff);
+    // sprintf(item->string, "%s", "hello");
+    // printf("after handler\n");
+    printf("The result: %s\n", item.string);
+}
+
+
+
+
+
+
+int main(void){
+
+    test_2();
+
+    return 0;
+}
 
 
 
